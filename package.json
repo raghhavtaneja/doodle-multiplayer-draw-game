@@ -1,0 +1,22 @@
+{
+  "name": "websitetemplate",
+  "version": "1.0.0",
+  "description": "Alpha by HTML5 UP\r html5up.net | @ajlkn\r Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)",
+  "main": "app.js",
+  "scripts": {
+    "start": "nodemon app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Raghav Taneja",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^10.0.0",
+    "express": "^4.17.1",
+    "express-validator": "^6.13.0",
+    "moment": "^2.29.1",
+    "mongoose": "^6.0.12",
+    "nodemon": "^2.0.13",
+    "p5": "^1.4.0",
+    "socket.io": "^4.2.0"
+  }
+}

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous" />
+  <link rel="stylesheet" href="/css/main.css">
+  <title>Doodle App</title>
+</head>
+<body>
+  <div class="main-header">
+    <header class="chatroom-header">
+      <h1> Doodle </h1>
+      <h2 id="time-left"></h2>
+      <button id="leavebtn" class="btn">Leave Room</button>
+    </header>
+  </div>
+
+  <div class="flex-container">
+  <div class="user-container col one">
+    <div class="user-bar">
+
+      <h3><i class="fas fa-comments"></i> Room Name:</h3>
+      <hr>
+      <h2 id="room-name"><!-- CURRENT ROOM NAME COMES HERE --></h2>
+      <hr>
+      <h3><i class="fas fa-users"></i> Users</h3>
+      <ul id="users">
+        <hr>
+        <span class="user-name"></span> <span class="user-points">PTS</span>
+        <!-- CURRENT USERS COME HERE -->
+        <hr>
+      </ul>
+      <br>
+      <br>
+      <!-- <button onclick="wordprompt()" id="startbtn">START</button> -->
+      <button id="startbtn">START</button>
+
+    </div>
+  </div>
+  <!-- <div class="canvas-container col two">
+    <canvas id="canvas">
+    </canvas>
+  </div> -->
+
+  <canvas id="canvas">
+  </canvas>
+
+  <div class="chat-container col three">
+    <main class="chat-main">
+      <div class="chat-messages">
+					<!-- CHAT MESSAGES COME HERE -->
+      </div>
+    </main>
+    <div class="chat-form-container">
+      <form id="chat-form">
+        <input
+          id="msg"
+          type="text"
+          placeholder="Enter Message"
+          required
+          autocomplete="off"
+        />
+        <button class="btn"><i class="fas fa-paper-plane"></i> Send</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Color Grid and eraser-->
+<div class="tools">
+  <button onclick="erase_canvas()" class="btn">Clear</button>
+  <button onclick="start_eraser()" class="btn">Eraser</button>
+  <div onclick="change_color(this)" class="color-field" style="background: red;"></div>
+  <div onclick="change_color(this)" class="color-field" style="background: blue;"></div>
+  <div onclick="change_color(this)" class="color-field" style="background: green;"></div>
+  <div onclick="change_color(this)" class="color-field" style="background: yellow;"></div>
+  <div onclick="change_color(this)" class="color-field" style="background: black;"></div>
+  <!-- <input type="range" min="1" max="50" value="1" class="pen-range" onInput="change_width(this.value)" onchange="change_width(this.value)"> -->
+
+</div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qs/6.10.1/qs.min.js" integrity="sha512-aTKlYRb1QfU1jlF3k+aS4AqTpnTXci4R79mkdie/bp6Xm51O5O3ESAYhvg6zoicj/PD6VYY0XrYwsWLcvGiKZQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/canvas.js"></script>
+</body>
+</html>
