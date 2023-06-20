@@ -1,34 +1,53 @@
 const express = require('express');
 const http = require('http');
-const socketio = require('socket.io');
+const cors = require('cors');
+const { Server } = require('socket.io');
 const formatMessage = require('./utils/messages');
 const { userJoin, getCurrentUser, userLeave, getRoomUsers } = require('./utils/users');
 const dotenv = require('dotenv');
 dotenv.config();
 
+// express server
 const app = express();
-const PORT = process.env.PORT ||3000;
+const PORT = process.env.PORT || 3000;
 const server = http.createServer(app);
-const io = socketio(server);
+const io = new Server(server, {
+    cors: {
+        origin: "http://localhost:5173",
+        methods: ["GET", "POST"]
+    }
+});
 
-//set static folder
+//static folder 
 app.use(express.static(__dirname + '/assets'));
 app.use(express.json());
+app.use(cors());
 
 let word;
 let gameRunning = false;
 //Run when user connects
 io.on('connection', (socket) => {
-    console.log('connection with socket succesful!');
+    console.log('connection with socket succesful!', socket.id);
+    // v2
+    socket.on("join_room", (data) => {
+        socket.join(data.room);
+        console.log(`User with ID: ${socket.id} joined room: ${data.room}`);
+        socket.emit('admin_message', (`Welcome ${data.userName}`));
+        //Broadcast to everyone expect the one who joined
+        socket.broadcast.to(data.room).emit('admin_message', (`${data.userName} has joined the chat!`));
+
+    });
+
     //When a new user joins
-    socket.on('joinRoom', ({ username, room }) => {
-        const user = userJoin(socket.id, username, room, 0);
-        socket.join(user.room);
+    socket.on('joinRoom', ({ userName, room }) => {
+        console.log(userName + " has joined the room " + room);
+        const user = userJoin(socket.id, userName, room, 0);
+        socket.join(room);
         //Welcome current user
-        socket.emit('message', formatMessage('ADMIN', `Welcome ${username}`));
+        socket.emit('message', formatMessage('ADMIN', `Welcome ${userName}`));
 
         //Broadcast to everyone expect the one who joined
-        socket.broadcast.to(user.room).emit('message', formatMessage('ADMIN', `${username} has joined the chat!`));
+        socket.broadcast.to(user.room).emit('message', formatMessage('ADMIN', `${userName} has joined the chat!`));
 
         //Send users and room info
         io.to(user.room).emit('roomUsers', {
@@ -66,6 +85,11 @@ io.on('connection', (socket) => {
         else io.to(user.room).emit('message', formatMessage(user.username, msg));
     })
 
+    //Listen For Chat Message - v2
+    socket.on('send_message', (msg) => {
+        socket.to(msg.room).emit('receive_message', msg);
+    })
+
     //Listen For start-game timer
     socket.on('startGame', () => {
         const user = getCurrentUser(socket.id);
@@ -83,6 +107,9 @@ io.on('connection', (socket) => {
         }, 1000);
     })
 
+    socket.on('draw_line', ({ prevPoint, currentPoint, color, room }) => {
+        socket.broadcast.to(room).emit('draw_line', { prevPoint, currentPoint, color })
+    })
     //Listen for things to drawn on canvas and broadcast it on all clients.
     socket.on('draw', (data) => {
         // console.log("server recieved: " ,data);
@@ -91,22 +118,13 @@ io.on('connection', (socket) => {
     })
 
     //Reset position of mouse whenver someone draws
-    socket.on('down',(data)=>{
+    socket.on('down', (data) => {
         const user = getCurrentUser(socket.id);
-        io.to(user.room).emit('onMouseDown',data);
+        io.to(user.room).emit('onMouseDown', data);
     })
 
-    //Clear the canvas 
-    socket.on('clearCanvas', () => {
-        const user = getCurrentUser(socket.id);
-        io.to(user.room).emit('clearCanvas');
-    })
-
-    //Change color of the drawer pencil
-    socket.on('changeColor', (color) => {
-        const user = getCurrentUser(socket.id);
-        io.to(user.room).emit('changeDrawColor', color);
-    })
+    // clear canvas v2
+    socket.on('clear_canvas', ({ room }) => io.to(room).emit('clear_canvas'))
 
     //When A User disconnects
     socket.on('disconnect', () => {
