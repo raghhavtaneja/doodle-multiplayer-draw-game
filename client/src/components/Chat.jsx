@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
-import ScrollToBottom from "react-scroll-to-bottom";
 
 function Chat({ socket, username, room }) {
   const [currentMessage, setCurrentMessage] = useState("");
   const [messageList, setMessageList] = useState([]);
   const [adminMessage, setAdminMessage] = useState("");
+  const [wordGuessed, setWordGuessed] = useState("");
 
   const sendMessage = async () => {
     if (currentMessage !== "") {
@@ -25,6 +25,13 @@ function Chat({ socket, username, room }) {
   useEffect(() => {
     socket.on("receive_message", (data) => {
       // console.log(data.author + " ---- " + data.message + " -> " + data.room);
+      console.log(data,username);
+      let author = data.author;
+      if (data.author !== username && data.message === data.word) {
+        // word has been guessed
+        console.log("word has been guessed");
+        socket.emit("game_over", { author, room });
+      }
       setMessageList((list) => [...list, data]);
     });
 
@@ -32,6 +39,13 @@ function Chat({ socket, username, room }) {
       setAdminMessage(data);
       setTimeout(() => {
         setAdminMessage("");
+      }, 5000);
+    });
+
+    socket.on("word_guessed", (data) => {
+      setWordGuessed(data);
+      setTimeout(() => {
+        setWordGuessed("");
       }, 5000);
     });
   }, [socket]);
@@ -45,6 +59,11 @@ function Chat({ socket, username, room }) {
         {adminMessage && (
           <div className="text-red-500 justify-center items-center">
             admin: {adminMessage}
+          </div>
+        )}
+        {wordGuessed && (
+          <div className="text-green-600 justify-center items-center">
+            admin: {wordGuessed}
           </div>
         )}
         <div className="message-container">

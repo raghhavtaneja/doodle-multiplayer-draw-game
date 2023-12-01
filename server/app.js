@@ -2,8 +2,7 @@ const express = require('express');
 const http = require('http');
 const cors = require('cors');
 const { Server } = require('socket.io');
-const formatMessage = require('./utils/messages');
-const { userJoin, getCurrentUser, userLeave, getRoomUsers } = require('./utils/users');
+// const { userJoin, getCurrentUser, userLeave, getRoomUsers } = require('./utils/users')
 const dotenv = require('dotenv');
 dotenv.config();
 
@@ -23,18 +22,22 @@ app.use(express.static(__dirname + '/assets'));
 app.use(express.json());
 app.use(cors());
 
-let word;
+// part of game
+let userQueue = [];
+let word_to_guess;
 let gameRunning = false;
-//Run when user connects
+let wordGuessedBy = '';
+
 io.on('connection', (socket) => {
     console.log('connection with socket succesful!', socket.id);
     // v2
     socket.on("join_room", (data) => {
         socket.join(data.room);
         console.log(`User with ID: ${socket.id} joined room: ${data.room}`);
-        socket.emit('admin_message', (`Welcome ${data.userName}`));
-        //Broadcast to everyone expect the one who joined
+        socket.emit('admin_message', (`Welcome! ${data.userName}`));
         socket.broadcast.to(data.room).emit('admin_message', (`${data.userName} has joined the chat!`));
+        // todo: dont allow same username to enter same room
+        userQueue.push(data.userName);
 
     });
 
@@ -56,6 +59,12 @@ io.on('connection', (socket) => {
         });
     });
 
+    //Listen for game status - v2
+    socket.on('game_running', ({ room, running }) => {
+        gameRunning = running;
+        console.log("game running: ", gameRunning);
+        io.to(room).emit('game_running', running);
+    })
     //Listen for game status
     socket.on('gameRunning', (val) => {
         gameRunning = val;
@@ -64,33 +73,42 @@ io.on('connection', (socket) => {
         io.to(user.room).emit('gameRunning', val);
     })
 
-    //Listen for word that will be drawn
-    socket.on('wordToGuess', (text) => {
-        console.log(text);
-        word = text;
+    socket.on("game_over", ({ author,room }) => {
+        console.log("game over");
+        gameRunning = false;
+        wordGuessedBy = author;
+        io.to(room).emit('game_over');
     })
 
-    //Listen For Chat Message
-    socket.on('chatMessage', (msg) => {
-        console.log(gameRunning + "status of game");
-        const user = getCurrentUser(socket.id);
-        if (msg == word && gameRunning) {
-            user.points += 10;
-            io.to(user.room).emit('message', formatMessage('_', `${user.username} guessed the word`));
-            io.to(user.room).emit('roomUsers', {
-                room: user.room,
-                users: getRoomUsers(user.room)
-            });
-        }
-        else io.to(user.room).emit('message', formatMessage(user.username, msg));
+    //Listen for word that will be drawn - v2
+    socket.on('word_to_guess', (word) => {
+        console.log("word to guess: ", word);
+        word_to_guess = word;
     })
 
     //Listen For Chat Message - v2
     socket.on('send_message', (msg) => {
-        socket.to(msg.room).emit('receive_message', msg);
+        socket.to(msg.room).emit('receive_message', { ...msg, word: word_to_guess });
+    })
+    //Listen For start-game timer-v2
+    socket.on('start_game', ({ userName, room }) => {
+        console.log("game started in ", userName, room);
+        let counter = 30;
+        let countdown = setInterval(() => {
+            io.to(room).emit('game_timer', counter);
+            counter--;
+            if (counter === 0 || gameRunning === false) {
+                //show timer in all the screens
+                io.to(room).emit('game_timer', 0);
+                //tell clients that update gameRunning status
+                io.to(room).emit('game_over');
+                io.to(room).emit('word_guessed', (`Word has been guessed by: ${wordGuessedBy}`));
+                clearInterval(countdown);
+            }
+        }, 1000);
     })
 
-    //Listen For start-game timer
+    //listen For start-game time
     socket.on('startGame', () => {
         const user = getCurrentUser(socket.id);
         let counter = 30;
@@ -107,49 +125,29 @@ io.on('connection', (socket) => {
         }, 1000);
     })
 
+    // draw on canvas
     socket.on('draw_line', ({ prevPoint, currentPoint, color, room }) => {
         socket.broadcast.to(room).emit('draw_line', { prevPoint, currentPoint, color })
     })
-    //Listen for things to drawn on canvas and broadcast it on all clients.
-    socket.on('draw', (data) => {
-        // console.log("server recieved: " ,data);
-        const user = getCurrentUser(socket.id);
-        io.to(user.room).emit('drawData', data);
-    })
 
-    //Reset position of mouse whenver someone draws
-    socket.on('down', (data) => {
-        const user = getCurrentUser(socket.id);
-        io.to(user.room).emit('onMouseDown', data);
-    })
-
-    // clear canvas v2
+    // clear canvas
     socket.on('clear_canvas', ({ room }) => io.to(room).emit('clear_canvas'))
 
     //When A User disconnects
     socket.on('disconnect', () => {
-        const user = userLeave(socket.id);
+        // const user = userLeave(socket.id);
         // console.log(user);
-        if (user) {
-            io.to(user.room).emit('message', formatMessage('ADMIN', `${user.username} has left the room`));
+        // if (user) {
 
-            //Send user and room info
-            io.to(user.room).emit('roomUsers', {
-                room: user.room,
-                users: getRoomUsers(user.room)
-            });
-        }
+        //     //Send user and room info
+        //     io.to(user.room).emit('roomUsers', {
+        //         room: user.room,
+        //         users: getRoomUsers(user.room)
+        //     });
+        // }
     });
 });
 
 app.use(express.static('public'));
-
-app.get('/', (req, res) => {
-    res.sendFile('../public/index.html', { root: __dirname });
-});
-
-app.get('/chat-room', (req, res) => {
-    res.sendFile('./chat-room.html', { root: __dirname });
-});
 
 server.listen(PORT, () => console.log(`server running on port ${PORT}`));
