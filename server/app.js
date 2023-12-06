@@ -12,7 +12,7 @@ const PORT = process.env.PORT || 3000;
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:5173",
+        origin: ["http://localhost:5173", "https://doodle-two.vercel.app"],
         methods: ["GET", "POST"]
     }
 });
@@ -73,7 +73,7 @@ io.on('connection', (socket) => {
         io.to(user.room).emit('gameRunning', val);
     })
 
-    socket.on("game_over", ({ author,room }) => {
+    socket.on("game_over", ({ author, room }) => {
         console.log("game over");
         gameRunning = false;
         wordGuessedBy = author;
