@@ -4,7 +4,10 @@ import Chat from "./components/Chat";
 import Canvas from "./components/Canvas";
 import { FaPaintBrush } from "react-icons/fa";
 
-const socket = io.connect("http://localhost:3000");
+
+// const socket = io.connect("http://localhost:3000");
+const socket = io.connect("https://doodle-be.onrender.com");
+
 
 function App() {
   const [userName, setUserName] = useState("");
